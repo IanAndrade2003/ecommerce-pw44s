@@ -1,0 +1,17 @@
+@layer primeflex;
+@import "tailwindcss";
+@import "primeflex/primeflex.css" layer(primeflex);
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* Fundo e cor de texto seguem o tema ativo do PrimeReact (claro/escuro). */
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--surface-ground, #f9fafb);
+  color: var(--text-color, #1f2937);
+}
