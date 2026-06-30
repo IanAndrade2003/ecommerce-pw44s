@@ -112,6 +112,9 @@ export const HomePage = () => {
           <span className="text-xl font-bold" style={{ color: "var(--text-color)" }}>
             {brl(product.price)}
           </span>
+          
+        </div>
+        <div className="flex items-center justify-between mt-auto">
           <Button
             icon="pi pi-cart-plus"
             label="Comprar"
