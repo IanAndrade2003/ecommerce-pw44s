@@ -21,7 +21,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         }
         footer={
           <div>
-            <Button
+            <Button  
               label="Comprar"
               icon="pi pi-shopping-cart"
               className="p-button-sm p-mr-2"

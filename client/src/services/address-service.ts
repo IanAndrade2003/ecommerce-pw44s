@@ -1,21 +1,26 @@
-import type { IOrder, IResponse } from "@/commons/types";
+import type { IResponse } from "@/commons/types";
 import { api } from "@/lib/axios";
 
-const save = async (order: IOrder): Promise<IResponse> => {
+const save = async (address: {
+  street: string;
+  number: number;
+  zipCode: string;
+  complement?: string;
+}): Promise<IResponse> => {
   let response = {} as IResponse;
   try {
-    const data = await api.post("/orders", order);
+    const data = await api.post("/addresses", address);
     response = {
-      status: 200,
+      status: 201,
       success: true,
-      message: "Pedido realizado com sucesso!",
+      message: "Endereço salvo com sucesso!",
       data: data.data,
     };
   } catch (err: any) {
     response = {
       status: err.response?.status || 500,
       success: false,
-      message: "Falha ao processar o pedido",
+      message: "Falha ao salvar endereço",
       data: err.response?.data,
     };
   }
@@ -25,23 +30,23 @@ const save = async (order: IOrder): Promise<IResponse> => {
 const findAll = async (): Promise<IResponse> => {
   let response = {} as IResponse;
   try {
-    const data = await api.get("/orders");
+    const data = await api.get("/addresses");
     response = {
       status: 200,
       success: true,
-      message: "Pedidos carregados com sucesso!",
+      message: "Endereços carregados com sucesso!",
       data: data.data,
     };
   } catch (err: any) {
     response = {
       status: err.response?.status || 500,
       success: false,
-      message: "Falha ao carregar pedidos",
+      message: "Falha ao carregar endereços",
       data: err.response?.data,
     };
   }
   return response;
 };
 
-const OrderService = { save, findAll };
-export default OrderService;
+const AddressService = { save, findAll };
+export default AddressService;

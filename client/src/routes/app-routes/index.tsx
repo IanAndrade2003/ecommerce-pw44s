@@ -12,6 +12,8 @@ import { NotFound } from "@/pages/not-found";
 import { ProductShow } from "@/pages/product-show";
 import { ProductCardListPage } from '@/pages/product-card-list';
 import { CheckoutPage } from "@/pages/checkout";
+import { AddressesPage } from "@/pages/addresses";
+import { OrdersPage } from "@/pages/orders";
 
 export function AppRoutes() {
   return (
@@ -37,6 +39,8 @@ export function AppRoutes() {
           <Route path="/products/show" element={<ProductShow />} />
           <Route path="/products/card-list" element={<ProductCardListPage />} />
           <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/addresses" element={<AddressesPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
           {/* catch all */}
           <Route path="*" element={<NotFound />} />
         </Route>

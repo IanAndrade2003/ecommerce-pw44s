@@ -8,6 +8,7 @@ import axios from "axios";
 import { api } from "@/lib/axios";
 import { useCart } from "@/context/CartContext";
 import OrderService from "@/services/order-service";
+import AddressService from "@/services/address-service";
 
 interface CheckoutAddress {
   zipcode: string;
@@ -33,6 +34,8 @@ export const CheckoutPage = () => {
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [shipping, setShipping] = useState<number>(0);
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [address, setAddress] = useState<CheckoutAddress>({
     zipcode: "",
     street: "",
@@ -47,6 +50,63 @@ export const CheckoutPage = () => {
   useEffect(() => {
     if (cart.length === 0) navigate("/");
   }, [cart, navigate]);
+
+  // Carrega os endereços já cadastrados do usuário
+  useEffect(() => {
+    AddressService.findAll().then((res) => {
+      if (res.success && Array.isArray(res.data)) {
+        setSavedAddresses(res.data);
+      }
+    });
+  }, []);
+
+  const handleSelectSavedAddress = (addr: any) => {
+    setSelectedAddressId(addr.id);
+
+    let comp = "";
+    let neigh = "";
+    let city = "";
+    let state = "";
+
+    if (addr.complement) {
+      const parts = addr.complement.split(",").map((p: string) => p.trim());
+      if (parts.length >= 1) comp = parts[0];
+      if (parts.length >= 2) neigh = parts[1];
+      if (parts.length >= 3) {
+        const cityState = parts[2].split("-").map((p: string) => p.trim());
+        if (cityState.length >= 1) city = cityState[0];
+        if (cityState.length >= 2) state = cityState[1];
+      }
+    }
+
+    setAddress({
+      zipcode: addr.zipCode || "",
+      street: addr.street || "",
+      number: String(addr.number || ""),
+      complement: comp || addr.complement || "",
+      neighborhood: neigh || "",
+      city: city || "",
+      state: state || "",
+    });
+
+    if (addr.zipCode) {
+      searchCep(addr.zipCode);
+    }
+  };
+
+  const handleSelectNewAddress = () => {
+    setSelectedAddressId(null);
+    setAddress({
+      zipcode: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: "",
+    });
+    setShipping(0);
+  };
 
   // Busca o CEP na API ViaCEP e calcula o frete
   const searchCep = async (cep: string) => {
@@ -130,7 +190,9 @@ export const CheckoutPage = () => {
 
     setLoading(true);
 
-    await saveAddress();
+    if (selectedAddressId === null) {
+      await saveAddress();
+    }
 
     const order = {
       items: cart.map((item) => ({
@@ -190,6 +252,66 @@ export const CheckoutPage = () => {
                 Entrega
               </h2>
 
+              {savedAddresses.length > 0 && (
+                <div className="mb-6">
+                  <span className="block text-sm font-semibold mb-3" style={labelStyle}>
+                    Selecione um endereço salvo:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                    {savedAddresses.map((addr) => {
+                      const isSelected = selectedAddressId === addr.id;
+                      return (
+                        <div
+                          key={addr.id}
+                          onClick={() => handleSelectSavedAddress(addr)}
+                          className={`p-4 rounded-xl border cursor-pointer transition-all duration-300 flex flex-col justify-between hover:shadow-md ${
+                            isSelected
+                              ? "border-indigo-500 bg-indigo-50/10 shadow-sm"
+                              : "border-surface-border bg-surface-card hover:border-indigo-400"
+                          }`}
+                          style={{
+                            borderColor: isSelected ? "var(--primary-color)" : "var(--surface-border)",
+                            backgroundColor: isSelected ? "rgba(99, 102, 241, 0.05)" : "var(--surface-card)",
+                          }}
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="font-semibold text-sm" style={{ color: "var(--text-color)" }}>
+                              🏠 {addr.street}, {addr.number}
+                            </span>
+                            {isSelected && (
+                              <i className="pi pi-check-circle text-indigo-500 text-lg"></i>
+                            )}
+                          </div>
+                          <span className="text-xs" style={labelStyle}>
+                            CEP: {addr.zipCode}
+                            {addr.complement && ` · ${addr.complement}`}
+                          </span>
+                        </div>
+                      );
+                    })}
+
+                    {/* Cartão de Novo Endereço */}
+                    <div
+                      onClick={handleSelectNewAddress}
+                      className={`p-4 rounded-xl border border-dashed cursor-pointer transition-all duration-300 flex items-center justify-center gap-2 hover:shadow-md ${
+                        selectedAddressId === null
+                          ? "border-indigo-500 bg-indigo-50/10 shadow-sm"
+                          : "border-surface-border bg-surface-card hover:border-indigo-400"
+                      }`}
+                      style={{
+                        borderColor: selectedAddressId === null ? "var(--primary-color)" : "var(--surface-border)",
+                        backgroundColor: selectedAddressId === null ? "rgba(99, 102, 241, 0.05)" : "var(--surface-card)",
+                      }}
+                    >
+                      <i className="pi pi-plus text-indigo-500"></i>
+                      <span className="font-semibold text-sm" style={{ color: "var(--text-color)" }}>
+                        Outro Endereço
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-1">
                   <label className="block text-sm font-medium mb-2" style={labelStyle}>
@@ -198,7 +320,10 @@ export const CheckoutPage = () => {
                   <InputMask
                     mask="99999-999"
                     value={address.zipcode}
-                    onChange={(e) => setAddress({ ...address, zipcode: e.value || "" })}
+                    onChange={(e) => {
+                      setSelectedAddressId(null);
+                      setAddress({ ...address, zipcode: e.value || "" });
+                    }}
                     onBlur={(e) => searchCep(e.target.value)}
                     placeholder="00000-000"
                     className="w-full"
@@ -212,7 +337,10 @@ export const CheckoutPage = () => {
                   </label>
                   <InputText
                     value={address.number}
-                    onChange={(e) => setAddress({ ...address, number: e.target.value })}
+                    onChange={(e) => {
+                      setSelectedAddressId(null);
+                      setAddress({ ...address, number: e.target.value });
+                    }}
                     className="w-full"
                     keyfilter="pint"
                   />
@@ -224,7 +352,10 @@ export const CheckoutPage = () => {
                   </label>
                   <InputText
                     value={address.street}
-                    onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                    onChange={(e) => {
+                      setSelectedAddressId(null);
+                      setAddress({ ...address, street: e.target.value });
+                    }}
                     className="w-full"
                   />
                 </div>
@@ -235,9 +366,10 @@ export const CheckoutPage = () => {
                   </label>
                   <InputText
                     value={address.neighborhood}
-                    onChange={(e) =>
-                      setAddress({ ...address, neighborhood: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setSelectedAddressId(null);
+                      setAddress({ ...address, neighborhood: e.target.value });
+                    }}
                     className="w-full"
                   />
                 </div>
@@ -248,9 +380,10 @@ export const CheckoutPage = () => {
                   </label>
                   <InputText
                     value={address.complement}
-                    onChange={(e) =>
-                      setAddress({ ...address, complement: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setSelectedAddressId(null);
+                      setAddress({ ...address, complement: e.target.value });
+                    }}
                     className="w-full"
                     placeholder="Apto, bloco..."
                   />
@@ -262,7 +395,10 @@ export const CheckoutPage = () => {
                   </label>
                   <InputText
                     value={address.city}
-                    onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                    onChange={(e) => {
+                      setSelectedAddressId(null);
+                      setAddress({ ...address, city: e.target.value });
+                    }}
                     className="w-full"
                   />
                 </div>
@@ -273,7 +409,10 @@ export const CheckoutPage = () => {
                   </label>
                   <InputText
                     value={address.state}
-                    onChange={(e) => setAddress({ ...address, state: e.target.value })}
+                    onChange={(e) => {
+                      setSelectedAddressId(null);
+                      setAddress({ ...address, state: e.target.value });
+                    }}
                     className="w-full"
                   />
                 </div>
